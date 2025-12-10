@@ -1,88 +1,74 @@
 #include <unistd.h> //read, close
 #include <fcntl.h> //open
 #include <stdio.h> //printf
-#include <string.h> //strlen, strcpy
-#include <ctype.h> //isascii
+#include <string.h> //strlen
+#include <ctype.h>
+#include <stdlib.h>
 
-static void	rev_polish_word(char *str)
-{
-	int	len = strlen(str);
-	int	i = 0;
-	int	j = len - 1;
-	char	tmp;
-	while (i < j)
-	{
-		tmp = str[i];
-		str[i] = str[j];
-		str[j] = tmp;
-		i++;
-		j--;
-	}
-	i = 0;
-	while (i < len)
-	{
-		if (isascii(str[i]))
-			i++;
-		else
-		{
-			tmp = str[i];
-			str[i] = str[i + 1];
-			str[i + 1] = tmp;
-			i += 2;
-		}
-	}
-}
+#define FAIL 1
+#define SUCCESS 0
 
-int	ismain(char *str)
+#define CARDS 1000
+#define WORDS_PER_CARD 6
+#define MAX_WORD_LEN 50
+#define MAX_WORDS_PER_LINE 4
+
+// void	rev_polish_word(char *str);
+char *gnl(int fd);
+
+int	spaces_split(char ***taboo, int *line_count, char *line)
 {
-	int  i = 0;
-	while (str[i] && ft_isupper(str[i]))
-		i++;
-	if (str[i] == ' ')
-		i++;
+	int	i;
+	int	j;
+	int	spaces_count;
+	int	row_count;
+
+	if (!line || !line_count || !taboo)
+		return (FAIL);
 	
+	row_count = 0;
 
-int	count_main(char *buff)
-{
-	int	i = 0;
-	int	codes = 0;
-
-	while (buff[i])
+	// if (line[0] == '\n')
+		// start_reversing and move to the next line następne carty;
+	i = 0;
+	while (line[i])
 	{
-		while (buff[i] == ' ')
+		while (line[i] && line[i] == ' ')
 			i++;
-		if (buff[i])
-			codes++;
-		while (buff[i] && buff[i] != ' ')
+		spaces_count = 0;
+		j = 0;
+		while (line[i] && line[i] != ' ' && j < MAX_WORD_LEN)
+		{
+			taboo[row_count + MAX_WORDS_PER_LINE * (*line_count) / 7][(*line_count % 7) - 1][j] = line[i];
+			printf("%c", line[i]);
+			j++;
 			i++;
+		}
+		if (line[i] == ' ' && ((line[i + 1] && line [i + 1]) == ' ' || !line[i + 1]))
+		{
+			taboo[row_count + MAX_WORDS_PER_LINE * (*line_count) / 7][(*line_count % 7) - 1][j] = '\0';
+			row_count++;
+		}
+		if (row_count > MAX_WORDS_PER_LINE - 1)
+			return (SUCCESS);
 	}
-	return (codes);
-}
-
-char	***parse_buff(char *buff)
-{
-	char	***taboo;
-
-	taboo = malloc(sizeof(char **) * count_main(buff));
+	return (SUCCESS);
 }
 
 int	main()
 {
-	char ***taboo;
+	char	taboo[CARDS][WORDS_PER_CARD][MAX_WORD_LEN];
+	char	*line;
+	int		line_count;
 
 	int fd = open("cz1.txt", O_RDONLY);
 	if (fd < 0)
 		return (printf("Error: open\n"), 1);
-
-	char	buff[BUF] = "";
-	int	read_b = read(fd, buff, BUF - 1);
-	if (read_b < 0)
-		return (printf("Error: read 1st\n"), 1);
-	buff[read_b] = '\0';
-
-	taboo = parse_buff(buff);
-
 	
+	line_count = 1;
+	line = gnl(fd);
+	spaces_split(taboo, &line_count, line);
+
 	if (close(fd))
 		return (printf("Error: close\n"), 1);
 	return (0);
